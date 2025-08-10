@@ -13,6 +13,5 @@
         public double Price { get; set; }
         public double FileSize { get; set; }
         public string SystemRequirements { get; set; }
-        public double UserRating { get; set; }
     }
 }
