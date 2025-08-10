@@ -1,6 +1,6 @@
-﻿namespace EcommerceAPIDemo.Controllers
+﻿namespace EcommerceAPIDemo.Controllers;
+
+public class SalesController
 {
-    public class SalesController
-    {
-    }
+
 }
