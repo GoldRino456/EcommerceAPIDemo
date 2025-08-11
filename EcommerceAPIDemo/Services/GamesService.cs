@@ -5,11 +5,12 @@ namespace EcommerceAPIDemo.Services;
 public interface IGamesService
 {
     //READ Operations
-    public List<GameProduct> GetAllGames(); //Pagination
-    public List<GameCategory> GetAllCategories(); //Pagination
-    public List<GameProduct> GetAllGamesInCategory(int categoryId); //Pagination
-    public List<GameCategory> GetAllGamesWithinPriceRange(double? minInclusive, double? maxExclusive); //Pagination
-    public GameProduct GetGame(int gameProductId);
+    public List<GameProduct>? GetAllGames(); //Pagination
+    public List<GameCategory>? GetAllCategories(); //Pagination
+    public List<GameProduct>? GetAllGamesInCategory(int categoryId); //Pagination
+    public List<GameProduct>? GetAllGamesWithinPriceRange(double? minInclusive, double? maxExclusive); //Pagination
+    public GameProduct? GetGame(int gameProductId);
+    public GameCategory? GetCategory(int categoryId);
 
     //CREATE Operations
     public GameProduct CreateGame(GameDto dto);
@@ -49,29 +50,90 @@ public class GamesService : IGamesService
         return savedGame.Entity;
     }
 
-    public List<GameCategory> GetAllCategories()
+    public List<GameCategory>? GetAllCategories()
     {
-        throw new NotImplementedException();
+        var categories = _salesDbContext.GameCategories.ToList();
+
+        if(categories.Count <= 0)
+        {
+            return null;
+        }
+
+        return categories;
     }
 
-    public List<GameProduct> GetAllGames()
+    public List<GameProduct>? GetAllGames()
     {
-        throw new NotImplementedException();
+        var games = _salesDbContext.GameProducts.ToList();
+
+        if (games.Count <= 0)
+        {
+            return null;
+        }
+
+        return games;
     }
 
-    public List<GameProduct> GetAllGamesInCategory(int categoryId)
+    public List<GameProduct>? GetAllGamesInCategory(int categoryId)
     {
-        throw new NotImplementedException();
+        var category = GetCategory(categoryId);
+
+        if (category == null)
+        {
+            return null;
+        }
+
+        var games = _salesDbContext.GameProducts.Where(product => product.Categories.Contains(category)).ToList();
+
+        if(games.Count <= 0)
+        {
+            return null;
+        }
+
+        return games;
     }
 
-    public List<GameCategory> GetAllGamesWithinPriceRange(double? minInclusive, double? maxExclusive)
+    public List<GameProduct>? GetAllGamesWithinPriceRange(double? minInclusive, double? maxExclusive)
     {
-        throw new NotImplementedException();
+
+        bool isMinValueNull = minInclusive != null;
+        bool isMaxValueNull = maxExclusive != null;
+        List<GameProduct> games;
+
+        if(isMinValueNull && isMaxValueNull)
+        {
+            return null;
+        }
+        
+        if(isMinValueNull) //Max Value Only
+        {
+            games = _salesDbContext.GameProducts.Where(game => game.Price < maxExclusive).ToList();
+        }
+        else if(isMaxValueNull) //Min Value Only
+        {
+            games = _salesDbContext.GameProducts.Where(game => game.Price >= minInclusive).ToList();
+        }
+        else //Both Bounds
+        {
+            games = _salesDbContext.GameProducts.Where(game => (game.Price < maxExclusive) && (game.Price >= minInclusive)).ToList();
+        }
+
+        if(games.Count <= 0)
+        {
+            return null;
+        }
+        
+        return games;
     }
 
-    public GameProduct GetGame(int gameProductId)
+    public GameProduct? GetGame(int gameProductId)
     {
-        throw new NotImplementedException();
+        return _salesDbContext.GameProducts.Find(gameProductId);
+    }
+
+    public GameCategory? GetCategory(int categoryId)
+    {
+        return _salesDbContext.GameCategories.Find(categoryId);
     }
 
     public GameCategory? UpdateCategory(int gameCategoryId, CategoryDto dto)
@@ -94,7 +156,19 @@ public class GamesService : IGamesService
 
     public GameProduct? UpdateGame(int gameProductId, GameDto dto)
     {
-        throw new NotImplementedException();
+        var existingGame = _salesDbContext.GameProducts.Find(gameProductId);
+        if (existingGame == null)
+        {
+            return null;
+        }
+
+        GameProduct newGame = ConvertDtoToGameProduct(dto);
+        newGame.Id = existingGame.Id;
+
+        _salesDbContext.GameProducts.Entry(existingGame).CurrentValues.SetValues(newGame);
+        _salesDbContext.SaveChanges();
+
+        return existingGame;
     }
 
     private static GameCategory ConvertDtoToGameCategory(CategoryDto dto)
