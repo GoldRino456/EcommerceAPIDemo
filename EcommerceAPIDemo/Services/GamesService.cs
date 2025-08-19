@@ -96,8 +96,8 @@ public class GamesService : IGamesService
     public List<GameProduct>? GetAllGamesWithinPriceRange(double? minInclusive, double? maxExclusive)
     {
 
-        bool isMinValueNull = minInclusive != null;
-        bool isMaxValueNull = maxExclusive != null;
+        bool isMinValueNull = minInclusive == null;
+        bool isMaxValueNull = maxExclusive == null;
         List<GameProduct> games;
 
         if(isMinValueNull && isMaxValueNull)
@@ -171,7 +171,7 @@ public class GamesService : IGamesService
         return existingGame;
     }
 
-    private static GameCategory ConvertDtoToGameCategory(CategoryDto dto)
+    private GameCategory ConvertDtoToGameCategory(CategoryDto dto)
     {
         return new()
         {
@@ -180,7 +180,7 @@ public class GamesService : IGamesService
         };
     }
 
-    private static GameProduct ConvertDtoToGameProduct(GameDto dto)
+    private GameProduct ConvertDtoToGameProduct(GameDto dto)
     {
         return new()
         {
