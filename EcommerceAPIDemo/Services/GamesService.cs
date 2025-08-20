@@ -17,8 +17,8 @@ public interface IGamesService
     public GameCategory CreateCategory(CategoryDto dto);
 
     //UPDATE Operations
-    public GameProduct? UpdateGame(int gameProductId, GameDto dto);
-    public GameCategory? UpdateCategory(int gameCategoryId, CategoryDto dto);
+    public GameProduct UpdateGame(int gameProductId, GameDto dto);
+    public GameCategory UpdateCategory(int gameCategoryId, CategoryDto dto);
 }
 
 public class GamesService : IGamesService
@@ -78,11 +78,6 @@ public class GamesService : IGamesService
     {
         var category = GetCategory(categoryId);
 
-        if (category == null)
-        {
-            return null;
-        }
-
         var games = _salesDbContext.GameProducts.Where(product => product.Categories.Contains(category)).ToList();
 
         if(games.Count <= 0)
@@ -99,11 +94,6 @@ public class GamesService : IGamesService
         bool isMinValueNull = minInclusive == null;
         bool isMaxValueNull = maxExclusive == null;
         List<GameProduct> games;
-
-        if(isMinValueNull && isMaxValueNull)
-        {
-            return null;
-        }
         
         if(isMinValueNull) //Max Value Only
         {
@@ -136,14 +126,10 @@ public class GamesService : IGamesService
         return _salesDbContext.GameCategories.Find(categoryId);
     }
 
-    public GameCategory? UpdateCategory(int gameCategoryId, CategoryDto dto)
+    public GameCategory UpdateCategory(int gameCategoryId, CategoryDto dto)
     {
         var existingCategory = _salesDbContext.GameCategories.Find(gameCategoryId);
 
-        if(existingCategory == null)
-        {
-            return null;
-        }
 
         GameCategory newCategory = ConvertDtoToGameCategory(dto);
         newCategory.Id = existingCategory.Id;
@@ -154,13 +140,9 @@ public class GamesService : IGamesService
         return existingCategory;
     }
 
-    public GameProduct? UpdateGame(int gameProductId, GameDto dto)
+    public GameProduct UpdateGame(int gameProductId, GameDto dto)
     {
         var existingGame = _salesDbContext.GameProducts.Find(gameProductId);
-        if (existingGame == null)
-        {
-            return null;
-        }
 
         GameProduct newGame = ConvertDtoToGameProduct(dto);
         newGame.Id = existingGame.Id;
