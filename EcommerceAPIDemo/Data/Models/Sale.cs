@@ -1,4 +1,4 @@
-﻿namespace EcommerceAPIDemo.Data;
+﻿namespace EcommerceAPIDemo.Data.Models;
 
 public class Sale
 {
@@ -7,7 +7,7 @@ public class Sale
     public DateTime TransactionLastUpdatedDate { get; set; }
     public bool IsRefund { get; set; }
     public bool IsPartialRefund { get; set; }
-    public List<GameProduct> GamesPurchased { get; set; }
+    public List<GameProduct> GamesPurchased { get; } = [];
     public CreditCardTypes creditCardType { get; set; }
     public int LastFourDigitsOfPaymentCard { get; set; }
     public double SubTotal { get; set; }
