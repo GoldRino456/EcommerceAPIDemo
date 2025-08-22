@@ -2,7 +2,7 @@
 
 public class SaleDto
 {
-    public List<GameProduct> GamesPurchased { get; set; }
+    public List<int>? PurchasedGameIds { get; set; }
     public CreditCardTypes creditCardType { get; set; }
     public int LastFourDigitsOfPaymentCard { get; set; }
     public double SubTotal { get; set; }

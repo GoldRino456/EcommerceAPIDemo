@@ -190,14 +190,27 @@ public class SalesService : ISalesService
 
     private Sale ConvertDtoToSale(SaleDto dto)
     {
-        return new()
+        Sale newSale = new()
         {
-            GamesPurchased = dto.GamesPurchased,
             creditCardType = dto.creditCardType,
             LastFourDigitsOfPaymentCard = dto.LastFourDigitsOfPaymentCard,
             SubTotal = dto.SubTotal,
             SalesTax = dto.SalesTax,
             Total = dto.Total
         };
+
+        if (dto.PurchasedGameIds != null)
+        {
+            foreach (var id in dto.PurchasedGameIds)
+            {
+                var selectedGame = _salesDbContext.GameProducts.Find(id);
+                if (selectedGame != null)
+                {
+                    newSale.GamesPurchased.Add(selectedGame);
+                }
+            }
+        }
+
+        return newSale;
     }
 }

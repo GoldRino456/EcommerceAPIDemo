@@ -155,20 +155,32 @@ public class GamesService : IGamesService
 
     private GameCategory ConvertDtoToGameCategory(CategoryDto dto)
     {
-        return new()
+        GameCategory gameCategory = new()
         {
-            Name = dto.Name,
-            GamesInCategory = new()
+            Name = dto.Name  
         };
+
+        if(dto.GameProductIds != null)
+        {
+            foreach(var id in dto.GameProductIds)
+            {
+                var selectedGame = _salesDbContext.GameProducts.Find(id);
+                if(selectedGame != null)
+                {
+                    gameCategory.GamesInCategory.Add(selectedGame);
+                }
+            }
+        }
+
+        return gameCategory;
     }
 
     private GameProduct ConvertDtoToGameProduct(GameDto dto)
     {
-        return new()
+        GameProduct gameProduct = new()
         {
             Title = dto.Title,
             Description = dto.Description,
-            Categories = dto.Categories,
             Sales = new(),
             Developer = dto.Developer,
             Publisher = dto.Publisher,
@@ -177,5 +189,19 @@ public class GamesService : IGamesService
             FileSize = dto.FileSize,
             SystemRequirements = dto.SystemRequirements
         };
+
+        if (dto.GameCategoryIds != null)
+        {
+            foreach (var id in dto.GameCategoryIds)
+            {
+                var selectedCategory = _salesDbContext.GameCategories.Find(id);
+                if (selectedCategory != null)
+                {
+                    gameProduct.Categories.Add(selectedCategory);
+                }
+            }
+        }
+
+        return gameProduct;
     }
 }

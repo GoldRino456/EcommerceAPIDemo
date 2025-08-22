@@ -5,7 +5,7 @@
         public int Id { get; set; }
         public string Title { get; set; }
         public string Description { get; set; }
-        public List<GameCategory> Categories { get; set; }
+        public List<GameCategory> Categories { get; } = [];
         public List<Sale> Sales { get; set; }
         public string Developer { get; set; }
         public string Publisher { get; set; }

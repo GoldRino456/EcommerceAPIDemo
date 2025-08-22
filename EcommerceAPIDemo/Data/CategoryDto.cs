@@ -3,5 +3,5 @@
 public class CategoryDto
 {
     public string Name { get; set; }
-    public List<GameProduct>? GamesInCategory { get; set; }
+    public List<int>? GameProductIds { get; set; }
 }
