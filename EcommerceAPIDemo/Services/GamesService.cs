@@ -1,6 +1,4 @@
 ﻿using EcommerceAPIDemo.Data;
-using EcommerceAPIDemo.Data.DTOs;
-using EcommerceAPIDemo.Data.Models;
 
 namespace EcommerceAPIDemo.Services;
 
@@ -134,7 +132,7 @@ public class GamesService : IGamesService
 
 
         GameCategory newCategory = ConvertDtoToGameCategory(dto);
-        newCategory.GameCategoryId = existingCategory.GameCategoryId;
+        newCategory.Id = existingCategory.Id;
 
         _salesDbContext.GameCategories.Entry(existingCategory).CurrentValues.SetValues(newCategory);
         _salesDbContext.SaveChanges();
@@ -147,7 +145,7 @@ public class GamesService : IGamesService
         var existingGame = _salesDbContext.GameProducts.Find(gameProductId);
 
         GameProduct newGame = ConvertDtoToGameProduct(dto);
-        newGame.GameProductId = existingGame.GameProductId;
+        newGame.Id = existingGame.Id;
 
         _salesDbContext.GameProducts.Entry(existingGame).CurrentValues.SetValues(newGame);
         _salesDbContext.SaveChanges();
@@ -159,16 +157,19 @@ public class GamesService : IGamesService
     {
         return new()
         {
-            Name = dto.Name
+            Name = dto.Name,
+            GamesInCategory = new()
         };
     }
 
     private GameProduct ConvertDtoToGameProduct(GameDto dto)
     {
-        GameProduct newGame = new()
+        return new()
         {
             Title = dto.Title,
             Description = dto.Description,
+            Categories = dto.Categories,
+            Sales = new(),
             Developer = dto.Developer,
             Publisher = dto.Publisher,
             ReleaseDate = dto.ReleaseDate,
@@ -176,12 +177,5 @@ public class GamesService : IGamesService
             FileSize = dto.FileSize,
             SystemRequirements = dto.SystemRequirements
         };
-
-        foreach(var category in dto.Categories)
-        {
-            newGame.Categories.Add(category);
-        }
-
-        return newGame;
     }
 }

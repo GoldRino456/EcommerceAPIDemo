@@ -1,6 +1,4 @@
 ﻿using EcommerceAPIDemo.Data;
-using EcommerceAPIDemo.Data.DTOs;
-using EcommerceAPIDemo.Data.Models;
 
 namespace EcommerceAPIDemo.Services;
 
@@ -192,20 +190,14 @@ public class SalesService : ISalesService
 
     private Sale ConvertDtoToSale(SaleDto dto)
     {
-        Sale newSale = new()
+        return new()
         {
+            GamesPurchased = dto.GamesPurchased,
             creditCardType = dto.creditCardType,
             LastFourDigitsOfPaymentCard = dto.LastFourDigitsOfPaymentCard,
             SubTotal = dto.SubTotal,
             SalesTax = dto.SalesTax,
             Total = dto.Total
         };
-
-        foreach(var game in dto.GamesPurchased)
-        {
-            newSale.GamesPurchased.Add(game);
-        }
-
-        return newSale;
     }
 }

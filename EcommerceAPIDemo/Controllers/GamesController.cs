@@ -1,5 +1,4 @@
-﻿using EcommerceAPIDemo.Data.DTOs;
-using EcommerceAPIDemo.Data.Models;
+﻿using EcommerceAPIDemo.Data;
 using EcommerceAPIDemo.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -77,7 +76,7 @@ public class GamesController :ControllerBase
             return NotFound($"Category with id {categoryId} was not found.");
         }
 
-        var games = _gamesService.GetAllGamesInCategory(selectedCategory.GameCategoryId);
+        var games = _gamesService.GetAllGamesInCategory(selectedCategory.Id);
 
         if(games == null)
         {
@@ -135,7 +134,7 @@ public class GamesController :ControllerBase
             return NotFound($"Game with id {gameId} was not found.");
         }
 
-        return Ok(_gamesService.UpdateGame(selectedGame.GameProductId, dto));
+        return Ok(_gamesService.UpdateGame(selectedGame.Id, dto));
     }
 
     [HttpPut("categories/{categoryId}")]
@@ -148,6 +147,6 @@ public class GamesController :ControllerBase
             return NotFound($"Category with id {categoryId} was not found.");
         }
 
-        return Ok(_gamesService.UpdateCategory(selectedCategory.GameCategoryId, dto));
+        return Ok(_gamesService.UpdateCategory(selectedCategory.Id, dto));
     }
 }

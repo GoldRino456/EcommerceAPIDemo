@@ -1,12 +1,12 @@
-﻿namespace EcommerceAPIDemo.Data.Models
+﻿namespace EcommerceAPIDemo.Data
 {
     public class GameProduct
     {
-        public int GameProductId { get; set; }
+        public int Id { get; set; }
         public string Title { get; set; }
         public string Description { get; set; }
-        public ICollection<GameProductCategory> ProductCategories { get; set; }
-        public List<Sale> Sales { get; } = [];
+        public List<GameCategory> Categories { get; set; }
+        public List<Sale> Sales { get; set; }
         public string Developer { get; set; }
         public string Publisher { get; set; }
         public DateTime ReleaseDate { get; set; }
