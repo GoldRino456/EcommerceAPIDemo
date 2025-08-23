@@ -1,4 +1,5 @@
 ﻿using EcommerceAPIDemo.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace EcommerceAPIDemo.Services;
 
@@ -64,7 +65,10 @@ public class GamesService : IGamesService
 
     public List<GameProduct>? GetAllGames()
     {
-        var games = _salesDbContext.GameProducts.ToList();
+        var games = _salesDbContext.GameProducts
+            .Include(p => p.Categories)
+            .Include(p => p.Sales)
+            .ToList();
 
         if (games.Count <= 0)
         {
@@ -118,12 +122,15 @@ public class GamesService : IGamesService
 
     public GameProduct? GetGame(int gameProductId)
     {
-        return _salesDbContext.GameProducts.Find(gameProductId);
+        return _salesDbContext.GameProducts
+            .Include(p => p.Categories)
+            .Include(p => p.Sales)
+            .FirstOrDefault(p => p.Id == gameProductId);
     }
 
     public GameCategory? GetCategory(int categoryId)
     {
-        return _salesDbContext.GameCategories.Find(categoryId);
+        return _salesDbContext.GameCategories.FirstOrDefault(c => c.Id == categoryId);
     }
 
     public GameCategory UpdateCategory(int gameCategoryId, CategoryDto dto)
@@ -142,12 +149,17 @@ public class GamesService : IGamesService
 
     public GameProduct UpdateGame(int gameProductId, GameDto dto)
     {
-        var existingGame = _salesDbContext.GameProducts.Find(gameProductId);
+        var existingGame = _salesDbContext.GameProducts
+            .Include(p => p.Categories)
+            .Include(p => p.Sales)
+            .FirstOrDefault(p => p.Id == gameProductId);
 
         GameProduct newGame = ConvertDtoToGameProduct(dto);
         newGame.Id = existingGame.Id;
 
         _salesDbContext.GameProducts.Entry(existingGame).CurrentValues.SetValues(newGame);
+        existingGame.Categories.Clear();
+        existingGame.Categories.AddRange(newGame.Categories);
         _salesDbContext.SaveChanges();
 
         return existingGame;
@@ -160,18 +172,6 @@ public class GamesService : IGamesService
             Name = dto.Name  
         };
 
-        if(dto.GameProductIds != null)
-        {
-            foreach(var id in dto.GameProductIds)
-            {
-                var selectedGame = _salesDbContext.GameProducts.Find(id);
-                if(selectedGame != null)
-                {
-                    gameCategory.GamesInCategory.Add(selectedGame);
-                }
-            }
-        }
-
         return gameCategory;
     }
 
@@ -181,7 +181,6 @@ public class GamesService : IGamesService
         {
             Title = dto.Title,
             Description = dto.Description,
-            Sales = new(),
             Developer = dto.Developer,
             Publisher = dto.Publisher,
             ReleaseDate = dto.ReleaseDate,
@@ -197,6 +196,7 @@ public class GamesService : IGamesService
                 var selectedCategory = _salesDbContext.GameCategories.Find(id);
                 if (selectedCategory != null)
                 {
+                    _salesDbContext.Attach(selectedCategory);
                     gameProduct.Categories.Add(selectedCategory);
                 }
             }

@@ -4,6 +4,7 @@ using EcommerceAPIDemo.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EcommerceAPIDemo.Migrations
 {
     [DbContext(typeof(SalesDbContext))]
-    partial class SalesDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250823225121_DBTestingMtoMRelationship")]
+    partial class DBTestingMtoMRelationship
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -30,16 +33,11 @@ namespace EcommerceAPIDemo.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int?>("GameProductId")
-                        .HasColumnType("int");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("GameProductId");
 
                     b.ToTable("GameCategories");
                 });
@@ -129,6 +127,21 @@ namespace EcommerceAPIDemo.Migrations
                     b.ToTable("Sales");
                 });
 
+            modelBuilder.Entity("GameCategoryGameProduct", b =>
+                {
+                    b.Property<int>("CategoriesId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("GamesInCategoryId")
+                        .HasColumnType("int");
+
+                    b.HasKey("CategoriesId", "GamesInCategoryId");
+
+                    b.HasIndex("GamesInCategoryId");
+
+                    b.ToTable("GameCategoryGameProduct");
+                });
+
             modelBuilder.Entity("GameProductSale", b =>
                 {
                     b.Property<int>("GamesPurchasedId")
@@ -144,11 +157,19 @@ namespace EcommerceAPIDemo.Migrations
                     b.ToTable("GameProductSale");
                 });
 
-            modelBuilder.Entity("EcommerceAPIDemo.Data.GameCategory", b =>
+            modelBuilder.Entity("GameCategoryGameProduct", b =>
                 {
+                    b.HasOne("EcommerceAPIDemo.Data.GameCategory", null)
+                        .WithMany()
+                        .HasForeignKey("CategoriesId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("EcommerceAPIDemo.Data.GameProduct", null)
-                        .WithMany("Categories")
-                        .HasForeignKey("GameProductId");
+                        .WithMany()
+                        .HasForeignKey("GamesInCategoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("GameProductSale", b =>
@@ -164,11 +185,6 @@ namespace EcommerceAPIDemo.Migrations
                         .HasForeignKey("SalesId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("EcommerceAPIDemo.Data.GameProduct", b =>
-                {
-                    b.Navigation("Categories");
                 });
 #pragma warning restore 612, 618
         }
