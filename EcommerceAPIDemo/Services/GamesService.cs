@@ -6,10 +6,10 @@ namespace EcommerceAPIDemo.Services;
 public interface IGamesService
 {
     //READ Operations
-    public IQueryable<GameProduct>? GetAllGames(); //Pagination
-    public IQueryable<GameCategory>? GetAllCategories(); //Pagination
-    public Task<IQueryable<GameProduct>?> GetAllGamesInCategory(int categoryId); //Pagination
-    public IQueryable<GameProduct>? GetAllGamesWithinPriceRange(double? minInclusive, double? maxExclusive); //Pagination
+    public IQueryable<GameProduct>? GetAllGames();
+    public IQueryable<GameCategory>? GetAllCategories();
+    public Task<IQueryable<GameProduct>?> GetAllGamesInCategory(int categoryId);
+    public IQueryable<GameProduct>? GetAllGamesWithinPriceRange(double? minInclusive, double? maxExclusive);
     public Task<GameProduct?> GetGame(int gameProductId);
     public Task<GameCategory?> GetCategory(int categoryId);
 

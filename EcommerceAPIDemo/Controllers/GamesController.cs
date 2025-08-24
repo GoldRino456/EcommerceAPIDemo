@@ -2,6 +2,7 @@
 using EcommerceAPIDemo.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace EcommerceAPIDemo.Controllers;
 
@@ -82,7 +83,7 @@ public class GamesController :ControllerBase
     }
 
     [HttpGet("filter/categories/{categoryId}")]
-    public async Task<ActionResult<List<GameProduct>>> GetAllGamesInCategory(int categoryId)
+    public async Task<ActionResult<List<GameProduct>>> GetAllGamesInCategoryAsync(int categoryId, [FromQuery] PaginationParams paginationParams)
     {
         var selectedCategory = await _gamesService.GetCategory(categoryId);
 
@@ -91,19 +92,25 @@ public class GamesController :ControllerBase
             return NotFound($"Category with id {categoryId} was not found.");
         }
 
-        var games = await _gamesService.GetAllGamesInCategory(selectedCategory.Id);
+        var query = await _gamesService.GetAllGamesInCategory(selectedCategory.Id);
 
-        if(games == null)
+        if(query == null)
         {
             return NoContent();
         }
 
-        var gamesList = await games.ToListAsync();
-        return Ok(gamesList);
+        var totalRecords = await query.CountAsync();
+        var items = await query.Skip((paginationParams.PageNumber - 1) * paginationParams.PageSize)
+            .Take(paginationParams.PageSize)
+            .ToListAsync();
+
+        var pagedResponse = new PagedResponse<GameProduct>(items, paginationParams.PageNumber, paginationParams.PageSize, totalRecords);
+
+        return Ok(pagedResponse);
     }
 
     [HttpGet("filter/price")]
-    public async Task<ActionResult<List<GameProduct>>> GetAllGamesWithinPriceRange(double? minInclusive = null, double? maxExclusive = null)
+    public async Task<ActionResult<List<GameProduct>>> GetAllGamesWithinPriceRangeAsync([FromQuery] PaginationParams paginationParams, double? minInclusive = null, double? maxExclusive = null)
     {
         if(minInclusive == null && maxExclusive == null)
         {
@@ -118,31 +125,37 @@ public class GamesController :ControllerBase
             return BadRequest("Invalid values for Minimum and Maximum range. Minimum and Maximum values cannot be equal.");
         }
 
-        var games = _gamesService.GetAllGamesWithinPriceRange(minInclusive, maxExclusive);
+        var query = _gamesService.GetAllGamesWithinPriceRange(minInclusive, maxExclusive);
 
-        if(games == null)
+        if (query == null)
         {
             return NoContent();
         }
 
-        var gamesList = await games.ToListAsync();
-        return Ok(gamesList);
+        var totalRecords = await query.CountAsync();
+        var items = await query.Skip((paginationParams.PageNumber - 1) * paginationParams.PageSize)
+            .Take(paginationParams.PageSize)
+            .ToListAsync();
+
+        var pagedResponse = new PagedResponse<GameProduct>(items, paginationParams.PageNumber, paginationParams.PageSize, totalRecords);
+
+        return Ok(pagedResponse);
     }
 
     [HttpPost]
-    public async Task<ActionResult<GameProduct>> CreateGame(GameDto dto)
+    public async Task<ActionResult<GameProduct>> CreateGameAsync(GameDto dto)
     {
         return Ok(await _gamesService.CreateGame(dto));
     }
 
     [HttpPost("categories")]
-    public async Task<ActionResult<GameCategory>> CreateCategory(CategoryDto dto)
+    public async Task<ActionResult<GameCategory>> CreateCategoryAsync(CategoryDto dto)
     {
         return Ok(await _gamesService.CreateCategory(dto));
     }
 
     [HttpPut("{gameId}")]
-    public async Task<ActionResult<GameProduct>> UpdateGame(int gameId, GameDto dto)
+    public async Task<ActionResult<GameProduct>> UpdateGameAsync(int gameId, GameDto dto)
     {
         var selectedGame = await _gamesService.GetGame(gameId);
 
@@ -151,11 +164,11 @@ public class GamesController :ControllerBase
             return NotFound($"Game with id {gameId} was not found.");
         }
 
-        return Ok(_gamesService.UpdateGame(selectedGame.Id, dto));
+        return Ok(await _gamesService.UpdateGame(selectedGame.Id, dto));
     }
 
     [HttpPut("categories/{categoryId}")]
-    public async Task<ActionResult<GameCategory>> UpdateCategory(int categoryId, CategoryDto dto)
+    public async Task<ActionResult<GameCategory>> UpdateCategoryAsync(int categoryId, CategoryDto dto)
     {
         var selectedCategory = await _gamesService.GetCategory(categoryId);
 
@@ -164,6 +177,6 @@ public class GamesController :ControllerBase
             return NotFound($"Category with id {categoryId} was not found.");
         }
 
-        return Ok(_gamesService.UpdateCategory(selectedCategory.Id, dto));
+        return Ok(await _gamesService.UpdateCategory(selectedCategory.Id, dto));
     }
 }
