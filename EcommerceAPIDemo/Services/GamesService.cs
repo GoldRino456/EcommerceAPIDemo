@@ -6,20 +6,20 @@ namespace EcommerceAPIDemo.Services;
 public interface IGamesService
 {
     //READ Operations
-    public List<GameProduct>? GetAllGames(); //Pagination
-    public List<GameCategory>? GetAllCategories(); //Pagination
-    public List<GameProduct>? GetAllGamesInCategory(int categoryId); //Pagination
-    public List<GameProduct>? GetAllGamesWithinPriceRange(double? minInclusive, double? maxExclusive); //Pagination
-    public GameProduct? GetGame(int gameProductId);
-    public GameCategory? GetCategory(int categoryId);
+    public IQueryable<GameProduct>? GetAllGames(); //Pagination
+    public IQueryable<GameCategory>? GetAllCategories(); //Pagination
+    public Task<IQueryable<GameProduct>?> GetAllGamesInCategory(int categoryId); //Pagination
+    public IQueryable<GameProduct>? GetAllGamesWithinPriceRange(double? minInclusive, double? maxExclusive); //Pagination
+    public Task<GameProduct?> GetGame(int gameProductId);
+    public Task<GameCategory?> GetCategory(int categoryId);
 
     //CREATE Operations
-    public GameProduct CreateGame(GameDto dto);
-    public GameCategory CreateCategory(CategoryDto dto);
+    public Task<GameProduct> CreateGame(GameDto dto);
+    public Task<GameCategory> CreateCategory(CategoryDto dto);
 
     //UPDATE Operations
-    public GameProduct UpdateGame(int gameProductId, GameDto dto);
-    public GameCategory UpdateCategory(int gameCategoryId, CategoryDto dto);
+    public Task<GameProduct> UpdateGame(int gameProductId, GameDto dto);
+    public Task<GameCategory> UpdateCategory(int gameCategoryId, CategoryDto dto);
 }
 
 public class GamesService : IGamesService
@@ -31,31 +31,32 @@ public class GamesService : IGamesService
         _salesDbContext = salesDbContext;
     }
 
-    public GameCategory CreateCategory(CategoryDto dto)
+    public async Task<GameCategory> CreateCategory(CategoryDto dto)
     {
         GameCategory newCategory = ConvertDtoToGameCategory(dto);
 
         var savedCategory = _salesDbContext.GameCategories.Add(newCategory);
-        _salesDbContext.SaveChanges();
+        await _salesDbContext.SaveChangesAsync();
 
         return savedCategory.Entity;
     }
 
-    public GameProduct CreateGame(GameDto dto)
+    public async Task<GameProduct> CreateGame(GameDto dto)
     {
         GameProduct newGame = ConvertDtoToGameProduct(dto);
 
         var savedGame = _salesDbContext.GameProducts.Add(newGame);
-        _salesDbContext.SaveChanges();
+        await _salesDbContext.SaveChangesAsync();
 
         return savedGame.Entity;
     }
 
-    public List<GameCategory>? GetAllCategories()
+    public IQueryable<GameCategory>? GetAllCategories()
     {
-        var categories = _salesDbContext.GameCategories.ToList();
+        var categories = _salesDbContext.GameCategories
+            .OrderBy(c => c.Id);
 
-        if(categories.Count <= 0)
+        if(!categories.Any())
         {
             return null;
         }
@@ -63,14 +64,14 @@ public class GamesService : IGamesService
         return categories;
     }
 
-    public List<GameProduct>? GetAllGames()
+    public IQueryable<GameProduct>? GetAllGames()
     {
         var games = _salesDbContext.GameProducts
             .Include(p => p.Categories)
             .Include(p => p.Sales)
-            .ToList();
+            .OrderBy(p => p.Id);
 
-        if (games.Count <= 0)
+        if (!games.Any())
         {
             return null;
         }
@@ -78,13 +79,12 @@ public class GamesService : IGamesService
         return games;
     }
 
-    public List<GameProduct>? GetAllGamesInCategory(int categoryId)
+    public async Task<IQueryable<GameProduct>?> GetAllGamesInCategory(int categoryId)
     {
-        var category = GetCategory(categoryId);
+        var category = await GetCategory(categoryId);
+        var games = _salesDbContext.GameProducts.Where(product => product.Categories.Contains(category)).OrderBy(p => p.Id);
 
-        var games = _salesDbContext.GameProducts.Where(product => product.Categories.Contains(category)).ToList();
-
-        if(games.Count <= 0)
+        if(!games.Any())
         {
             return null;
         }
@@ -92,27 +92,27 @@ public class GamesService : IGamesService
         return games;
     }
 
-    public List<GameProduct>? GetAllGamesWithinPriceRange(double? minInclusive, double? maxExclusive)
+    public IQueryable<GameProduct>? GetAllGamesWithinPriceRange(double? minInclusive, double? maxExclusive)
     {
 
         bool isMinValueNull = minInclusive == null;
         bool isMaxValueNull = maxExclusive == null;
-        List<GameProduct> games;
+        IQueryable<GameProduct> games;
         
         if(isMinValueNull) //Max Value Only
         {
-            games = _salesDbContext.GameProducts.Where(game => game.Price < maxExclusive).ToList();
+            games = _salesDbContext.GameProducts.Where(game => game.Price < maxExclusive).OrderBy(p => p.Id);
         }
         else if(isMaxValueNull) //Min Value Only
         {
-            games = _salesDbContext.GameProducts.Where(game => game.Price >= minInclusive).ToList();
+            games = _salesDbContext.GameProducts.Where(game => game.Price >= minInclusive).OrderBy(p => p.Id);
         }
         else //Both Bounds
         {
-            games = _salesDbContext.GameProducts.Where(game => (game.Price < maxExclusive) && (game.Price >= minInclusive)).ToList();
+            games = _salesDbContext.GameProducts.Where(game => (game.Price < maxExclusive) && (game.Price >= minInclusive)).OrderBy(p => p.Id);
         }
 
-        if(games.Count <= 0)
+        if(!games.Any())
         {
             return null;
         }
@@ -120,39 +120,40 @@ public class GamesService : IGamesService
         return games;
     }
 
-    public GameProduct? GetGame(int gameProductId)
+    public async Task<GameProduct?> GetGame(int gameProductId)
     {
-        return _salesDbContext.GameProducts
+        return await _salesDbContext.GameProducts
             .Include(p => p.Categories)
             .Include(p => p.Sales)
-            .FirstOrDefault(p => p.Id == gameProductId);
+            .FirstOrDefaultAsync(p => p.Id == gameProductId);
     }
 
-    public GameCategory? GetCategory(int categoryId)
+    public async Task<GameCategory?> GetCategory(int categoryId)
     {
-        return _salesDbContext.GameCategories.FirstOrDefault(c => c.Id == categoryId);
+        return await _salesDbContext.GameCategories.FirstOrDefaultAsync(c => c.Id == categoryId);
     }
 
-    public GameCategory UpdateCategory(int gameCategoryId, CategoryDto dto)
+    public async Task<GameCategory> UpdateCategory(int gameCategoryId, CategoryDto dto)
     {
-        var existingCategory = _salesDbContext.GameCategories.Find(gameCategoryId);
+        var existingCategory = await _salesDbContext.GameCategories
+            .FirstOrDefaultAsync(c => c.Id == gameCategoryId);
 
 
         GameCategory newCategory = ConvertDtoToGameCategory(dto);
         newCategory.Id = existingCategory.Id;
 
         _salesDbContext.GameCategories.Entry(existingCategory).CurrentValues.SetValues(newCategory);
-        _salesDbContext.SaveChanges();
+        await _salesDbContext.SaveChangesAsync();
 
         return existingCategory;
     }
 
-    public GameProduct UpdateGame(int gameProductId, GameDto dto)
+    public async Task<GameProduct> UpdateGame(int gameProductId, GameDto dto)
     {
-        var existingGame = _salesDbContext.GameProducts
+        var existingGame = await _salesDbContext.GameProducts
             .Include(p => p.Categories)
             .Include(p => p.Sales)
-            .FirstOrDefault(p => p.Id == gameProductId);
+            .FirstOrDefaultAsync(p => p.Id == gameProductId);
 
         GameProduct newGame = ConvertDtoToGameProduct(dto);
         newGame.Id = existingGame.Id;
@@ -160,7 +161,7 @@ public class GamesService : IGamesService
         _salesDbContext.GameProducts.Entry(existingGame).CurrentValues.SetValues(newGame);
         existingGame.Categories.Clear();
         existingGame.Categories.AddRange(newGame.Categories);
-        _salesDbContext.SaveChanges();
+        await _salesDbContext.SaveChangesAsync();
 
         return existingGame;
     }

@@ -1,6 +1,7 @@
 ﻿using EcommerceAPIDemo.Data;
 using EcommerceAPIDemo.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace EcommerceAPIDemo.Controllers;
 
@@ -15,35 +16,49 @@ public class GamesController :ControllerBase
     }
 
     [HttpGet]
-    public ActionResult<List<GameProduct>> GetAllGames()
+    public async Task<ActionResult<PagedResponse<GameProduct>>> GetAllGamesAsync([FromQuery] PaginationParams paginationParams)
     {
-        var games = _gamesService.GetAllGames();
+        var query = _gamesService.GetAllGames();
 
-        if(games == null)
+        if(query == null)
         {
             return NoContent();
         }
 
-        return Ok(games);
+        var totalRecords = await query.CountAsync();
+        var items = await query.Skip((paginationParams.PageNumber - 1) * paginationParams.PageSize)
+            .Take(paginationParams.PageSize)
+            .ToListAsync();
+
+        var pagedResponse = new PagedResponse<GameProduct>(items, paginationParams.PageNumber, paginationParams.PageSize, totalRecords);
+
+        return Ok(pagedResponse);
     }
 
     [HttpGet("categories")]
-    public ActionResult<List<GameCategory>> GetAllCategories()
+    public async Task<ActionResult<PagedResponse<GameCategory>>> GetAllCategoriesAsync([FromQuery] PaginationParams paginationParams)
     {
-        var categories = _gamesService.GetAllCategories();
+        var query = _gamesService.GetAllCategories();
 
-        if(categories == null)
+        if (query == null)
         {
             return NoContent();
         }
 
-        return Ok(categories);
+        var totalRecords = await query.CountAsync();
+        var items = await query.Skip((paginationParams.PageNumber - 1) * paginationParams.PageSize)
+            .Take(paginationParams.PageSize)
+            .ToListAsync();
+
+        var pagedResponse = new PagedResponse<GameCategory>(items, paginationParams.PageNumber, paginationParams.PageSize, totalRecords);
+
+        return Ok(pagedResponse);
     }
 
     [HttpGet("{gameId}")]
-    public ActionResult<GameProduct> GetGame(int gameId)
+    public async Task<ActionResult<GameProduct>> GetGameAsync(int gameId)
     {
-        var selectedGame = _gamesService.GetGame(gameId);
+        var selectedGame = await _gamesService.GetGame(gameId);
 
         if(selectedGame == null)
         {
@@ -54,9 +69,9 @@ public class GamesController :ControllerBase
     }
 
     [HttpGet("categories/{categoryId}")]
-    public ActionResult<GameCategory> GetCategory(int categoryId)
+    public async Task<ActionResult<GameCategory>> GetCategoryAsync(int categoryId)
     {
-        var selectedCategory = _gamesService.GetCategory(categoryId);
+        var selectedCategory = await _gamesService.GetCategory(categoryId);
 
         if (selectedCategory == null)
         {
@@ -67,27 +82,28 @@ public class GamesController :ControllerBase
     }
 
     [HttpGet("filter/categories/{categoryId}")]
-    public ActionResult<List<GameProduct>> GetAllGamesInCategory(int categoryId)
+    public async Task<ActionResult<List<GameProduct>>> GetAllGamesInCategory(int categoryId)
     {
-        var selectedCategory = _gamesService.GetCategory(categoryId);
+        var selectedCategory = await _gamesService.GetCategory(categoryId);
 
         if(selectedCategory == null)
         {
             return NotFound($"Category with id {categoryId} was not found.");
         }
 
-        var games = _gamesService.GetAllGamesInCategory(selectedCategory.Id);
+        var games = await _gamesService.GetAllGamesInCategory(selectedCategory.Id);
 
         if(games == null)
         {
             return NoContent();
         }
 
-        return Ok(games);
+        var gamesList = await games.ToListAsync();
+        return Ok(gamesList);
     }
 
     [HttpGet("filter/price")]
-    public ActionResult<List<GameProduct>> GetAllGamesWithinPriceRange(double? minInclusive = null, double? maxExclusive = null)
+    public async Task<ActionResult<List<GameProduct>>> GetAllGamesWithinPriceRange(double? minInclusive = null, double? maxExclusive = null)
     {
         if(minInclusive == null && maxExclusive == null)
         {
@@ -109,25 +125,26 @@ public class GamesController :ControllerBase
             return NoContent();
         }
 
-        return Ok(games);
+        var gamesList = await games.ToListAsync();
+        return Ok(gamesList);
     }
 
     [HttpPost]
-    public ActionResult<GameProduct> CreateGame(GameDto dto)
+    public async Task<ActionResult<GameProduct>> CreateGame(GameDto dto)
     {
-        return Ok(_gamesService.CreateGame(dto));
+        return Ok(await _gamesService.CreateGame(dto));
     }
 
     [HttpPost("categories")]
-    public ActionResult<GameCategory> CreateCategory(CategoryDto dto)
+    public async Task<ActionResult<GameCategory>> CreateCategory(CategoryDto dto)
     {
-        return Ok(_gamesService.CreateCategory(dto));
+        return Ok(await _gamesService.CreateCategory(dto));
     }
 
     [HttpPut("{gameId}")]
-    public ActionResult<GameProduct> UpdateGame(int gameId, GameDto dto)
+    public async Task<ActionResult<GameProduct>> UpdateGame(int gameId, GameDto dto)
     {
-        var selectedGame = _gamesService.GetGame(gameId);
+        var selectedGame = await _gamesService.GetGame(gameId);
 
         if(selectedGame == null)
         {
@@ -138,9 +155,9 @@ public class GamesController :ControllerBase
     }
 
     [HttpPut("categories/{categoryId}")]
-    public ActionResult<GameCategory> UpdateCategory(int categoryId, CategoryDto dto)
+    public async Task<ActionResult<GameCategory>> UpdateCategory(int categoryId, CategoryDto dto)
     {
-        var selectedCategory = _gamesService.GetCategory(categoryId);
+        var selectedCategory = await _gamesService.GetCategory(categoryId);
 
         if (selectedCategory == null)
         {
