@@ -1,11 +1,5 @@
 ﻿namespace EcommerceAPIDemo.Controllers;
 
-public class GameProductQuery
-{
-    public PaginationParams Pagination { get; set; } = new();
-    public GameProductFilterParams GameProductFilters { get; set; } = new();
-}
-
 public class GameProductFilterParams
 {
     public int? CategoryId { get; set; }

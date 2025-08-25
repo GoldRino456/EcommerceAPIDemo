@@ -16,7 +16,7 @@ public class GamesController :ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<PagedResponse<GameProduct>>> GetAllGamesAsync([FromQuery] GameProductQuery gameProductQuery)
+    public async Task<ActionResult<PagedResponse<GameProduct>>> GetAllGamesAsync([FromQuery] PaginationParams pagination, [FromQuery] GameProductFilterParams filters)
     {
         var query = _gamesService.GetAllGames();
 
@@ -25,26 +25,26 @@ public class GamesController :ControllerBase
             return NoContent();
         }
 
-        if (gameProductQuery.GameProductFilters.CategoryId.HasValue)
+        if (filters.CategoryId.HasValue)
         {
-            query = query.Where(p => p.Categories.Any(c => c.Id == gameProductQuery.GameProductFilters.CategoryId.Value));
+            query = query.Where(p => p.Categories.Any(c => c.Id == filters.CategoryId.Value));
         }
-        if(gameProductQuery.GameProductFilters.MinPrice.HasValue)
+        if(filters.MinPrice.HasValue)
         {
-            query = query.Where(p => p.Price >= gameProductQuery.GameProductFilters.MinPrice.Value);
+            query = query.Where(p => p.Price >= filters.MinPrice.Value);
         }
-        if (gameProductQuery.GameProductFilters.MaxPrice.HasValue)
+        if (filters.MaxPrice.HasValue)
         {
-            query = query.Where(p => p.Price < gameProductQuery.GameProductFilters.MaxPrice.Value);
+            query = query.Where(p => p.Price < filters.MaxPrice.Value);
         }
 
 
         var totalRecords = await query.CountAsync();
-        var items = await query.Skip((gameProductQuery.Pagination.PageNumber - 1) * gameProductQuery.Pagination.PageSize)
-            .Take(gameProductQuery.Pagination.PageSize)
+        var items = await query.Skip((pagination.PageNumber - 1) * pagination.PageSize)
+            .Take(pagination.PageSize)
             .ToListAsync();
 
-        var pagedResponse = new PagedResponse<GameProduct>(items, gameProductQuery.Pagination.PageNumber, gameProductQuery.Pagination.PageSize, totalRecords);
+        var pagedResponse = new PagedResponse<GameProduct>(items, pagination.PageNumber, pagination.PageSize, totalRecords);
 
         return Ok(pagedResponse);
     }
