@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using EcommerceAPIDemo.Data.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace EcommerceAPIDemo.Data;
 

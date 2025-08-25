@@ -1,4 +1,5 @@
-﻿using EcommerceAPIDemo.Data;
+﻿using EcommerceAPIDemo.Data.DTOs;
+using EcommerceAPIDemo.Data.Models;
 using EcommerceAPIDemo.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;

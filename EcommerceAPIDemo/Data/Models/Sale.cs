@@ -1,4 +1,4 @@
-﻿namespace EcommerceAPIDemo.Data;
+﻿namespace EcommerceAPIDemo.Data.Models;
 
 public class Sale
 {
