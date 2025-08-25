@@ -43,7 +43,7 @@ public class GamesService : IGamesService
 
     public async Task<GameProduct> CreateGame(NewGameDto dto)
     {
-        GameProduct newGame = ConvertDtoToGameProduct(dto);
+        GameProduct newGame = await ConvertDtoToGameProduct(dto);
 
         var savedGame = _salesDbContext.GameProducts.Add(newGame);
         await _salesDbContext.SaveChangesAsync();
@@ -114,7 +114,7 @@ public class GamesService : IGamesService
             .Include(p => p.Sales)
             .FirstOrDefaultAsync(p => p.Id == gameProductId);
 
-        GameProduct newGame = ConvertDtoToGameProduct(dto);
+        GameProduct newGame = await ConvertDtoToGameProduct(dto);
         newGame.Id = existingGame.Id;
         newGame.Price = existingGame.Price;
 
@@ -136,7 +136,7 @@ public class GamesService : IGamesService
         return gameCategory;
     }
 
-    private GameProduct ConvertDtoToGameProduct(NewGameDto dto)
+    private async Task<GameProduct> ConvertDtoToGameProduct(NewGameDto dto)
     {
         GameProduct gameProduct = new()
         {
@@ -154,7 +154,10 @@ public class GamesService : IGamesService
         {
             foreach (var id in dto.GameCategoryIds)
             {
-                var selectedCategory = _salesDbContext.GameCategories.Find(id);
+                var selectedCategory = await _salesDbContext.GameCategories
+                    .Include(c => c.Id == id)
+                    .FirstOrDefaultAsync();
+
                 if (selectedCategory != null)
                 {
                     _salesDbContext.Attach(selectedCategory);
@@ -166,7 +169,7 @@ public class GamesService : IGamesService
         return gameProduct;
     }
 
-    private GameProduct ConvertDtoToGameProduct(ExistingGameDto dto)
+    private async Task<GameProduct> ConvertDtoToGameProduct(ExistingGameDto dto)
     {
         GameProduct gameProduct = new()
         {
@@ -183,7 +186,10 @@ public class GamesService : IGamesService
         {
             foreach (var id in dto.GameCategoryIds)
             {
-                var selectedCategory = _salesDbContext.GameCategories.Find(id);
+                var selectedCategory = await _salesDbContext.GameCategories
+                    .Include(c => c.Id == id)
+                    .FirstOrDefaultAsync();
+
                 if (selectedCategory != null)
                 {
                     _salesDbContext.Attach(selectedCategory);
