@@ -2,7 +2,6 @@
 using EcommerceAPIDemo.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace EcommerceAPIDemo.Controllers;
 
@@ -17,21 +16,35 @@ public class GamesController :ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<PagedResponse<GameProduct>>> GetAllGamesAsync([FromQuery] PaginationParams paginationParams)
+    public async Task<ActionResult<PagedResponse<GameProduct>>> GetAllGamesAsync([FromQuery] GameProductQuery gameProductQuery)
     {
         var query = _gamesService.GetAllGames();
 
-        if(query == null)
+        if (query == null)
         {
             return NoContent();
         }
 
+        if (gameProductQuery.GameProductFilters.CategoryId.HasValue)
+        {
+            query = query.Where(p => p.Categories.Any(c => c.Id == gameProductQuery.GameProductFilters.CategoryId.Value));
+        }
+        if(gameProductQuery.GameProductFilters.MinPrice.HasValue)
+        {
+            query = query.Where(p => p.Price >= gameProductQuery.GameProductFilters.MinPrice.Value);
+        }
+        if (gameProductQuery.GameProductFilters.MaxPrice.HasValue)
+        {
+            query = query.Where(p => p.Price < gameProductQuery.GameProductFilters.MaxPrice.Value);
+        }
+
+
         var totalRecords = await query.CountAsync();
-        var items = await query.Skip((paginationParams.PageNumber - 1) * paginationParams.PageSize)
-            .Take(paginationParams.PageSize)
+        var items = await query.Skip((gameProductQuery.Pagination.PageNumber - 1) * gameProductQuery.Pagination.PageSize)
+            .Take(gameProductQuery.Pagination.PageSize)
             .ToListAsync();
 
-        var pagedResponse = new PagedResponse<GameProduct>(items, paginationParams.PageNumber, paginationParams.PageSize, totalRecords);
+        var pagedResponse = new PagedResponse<GameProduct>(items, gameProductQuery.Pagination.PageNumber, gameProductQuery.Pagination.PageSize, totalRecords);
 
         return Ok(pagedResponse);
     }
@@ -82,68 +95,8 @@ public class GamesController :ControllerBase
         return Ok(selectedCategory);
     }
 
-    [HttpGet("filter/categories/{categoryId}")]
-    public async Task<ActionResult<List<GameProduct>>> GetAllGamesInCategoryAsync(int categoryId, [FromQuery] PaginationParams paginationParams)
-    {
-        var selectedCategory = await _gamesService.GetCategory(categoryId);
-
-        if(selectedCategory == null)
-        {
-            return NotFound($"Category with id {categoryId} was not found.");
-        }
-
-        var query = await _gamesService.GetAllGamesInCategory(selectedCategory.Id);
-
-        if(query == null)
-        {
-            return NoContent();
-        }
-
-        var totalRecords = await query.CountAsync();
-        var items = await query.Skip((paginationParams.PageNumber - 1) * paginationParams.PageSize)
-            .Take(paginationParams.PageSize)
-            .ToListAsync();
-
-        var pagedResponse = new PagedResponse<GameProduct>(items, paginationParams.PageNumber, paginationParams.PageSize, totalRecords);
-
-        return Ok(pagedResponse);
-    }
-
-    [HttpGet("filter/price")]
-    public async Task<ActionResult<List<GameProduct>>> GetAllGamesWithinPriceRangeAsync([FromQuery] PaginationParams paginationParams, double? minInclusive = null, double? maxExclusive = null)
-    {
-        if(minInclusive == null && maxExclusive == null)
-        {
-            return BadRequest("Missing values for Minimum and Maximum range. At least one value is needed to filter results.");
-        }
-        else if(minInclusive < 0 && maxExclusive <= 0)
-        {
-            return BadRequest("Invalid values for Minimum and Maximum range. Minimum must be zero or greater. Maximum must be greater than zero.");
-        }
-        else if(minInclusive == maxExclusive)
-        {
-            return BadRequest("Invalid values for Minimum and Maximum range. Minimum and Maximum values cannot be equal.");
-        }
-
-        var query = _gamesService.GetAllGamesWithinPriceRange(minInclusive, maxExclusive);
-
-        if (query == null)
-        {
-            return NoContent();
-        }
-
-        var totalRecords = await query.CountAsync();
-        var items = await query.Skip((paginationParams.PageNumber - 1) * paginationParams.PageSize)
-            .Take(paginationParams.PageSize)
-            .ToListAsync();
-
-        var pagedResponse = new PagedResponse<GameProduct>(items, paginationParams.PageNumber, paginationParams.PageSize, totalRecords);
-
-        return Ok(pagedResponse);
-    }
-
     [HttpPost]
-    public async Task<ActionResult<GameProduct>> CreateGameAsync(GameDto dto)
+    public async Task<ActionResult<GameProduct>> CreateGameAsync(NewGameDto dto)
     {
         return Ok(await _gamesService.CreateGame(dto));
     }
@@ -155,7 +108,7 @@ public class GamesController :ControllerBase
     }
 
     [HttpPut("{gameId}")]
-    public async Task<ActionResult<GameProduct>> UpdateGameAsync(int gameId, GameDto dto)
+    public async Task<ActionResult<GameProduct>> UpdateGameAsync(int gameId, ExistingGameDto dto)
     {
         var selectedGame = await _gamesService.GetGame(gameId);
 

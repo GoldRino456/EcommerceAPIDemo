@@ -8,17 +8,15 @@ public interface IGamesService
     //READ Operations
     public IQueryable<GameProduct>? GetAllGames();
     public IQueryable<GameCategory>? GetAllCategories();
-    public Task<IQueryable<GameProduct>?> GetAllGamesInCategory(int categoryId);
-    public IQueryable<GameProduct>? GetAllGamesWithinPriceRange(double? minInclusive, double? maxExclusive);
     public Task<GameProduct?> GetGame(int gameProductId);
     public Task<GameCategory?> GetCategory(int categoryId);
 
     //CREATE Operations
-    public Task<GameProduct> CreateGame(GameDto dto);
+    public Task<GameProduct> CreateGame(NewGameDto dto);
     public Task<GameCategory> CreateCategory(CategoryDto dto);
 
     //UPDATE Operations
-    public Task<GameProduct> UpdateGame(int gameProductId, GameDto dto);
+    public Task<GameProduct> UpdateGame(int gameProductId, ExistingGameDto dto);
     public Task<GameCategory> UpdateCategory(int gameCategoryId, CategoryDto dto);
 }
 
@@ -41,7 +39,7 @@ public class GamesService : IGamesService
         return savedCategory.Entity;
     }
 
-    public async Task<GameProduct> CreateGame(GameDto dto)
+    public async Task<GameProduct> CreateGame(NewGameDto dto)
     {
         GameProduct newGame = ConvertDtoToGameProduct(dto);
 
@@ -79,47 +77,6 @@ public class GamesService : IGamesService
         return games;
     }
 
-    public async Task<IQueryable<GameProduct>?> GetAllGamesInCategory(int categoryId)
-    {
-        var category = await GetCategory(categoryId);
-        var games = _salesDbContext.GameProducts.Where(product => product.Categories.Contains(category)).OrderBy(p => p.Id);
-
-        if(!games.Any())
-        {
-            return null;
-        }
-
-        return games;
-    }
-
-    public IQueryable<GameProduct>? GetAllGamesWithinPriceRange(double? minInclusive, double? maxExclusive)
-    {
-
-        bool isMinValueNull = minInclusive == null;
-        bool isMaxValueNull = maxExclusive == null;
-        IQueryable<GameProduct> games;
-        
-        if(isMinValueNull) //Max Value Only
-        {
-            games = _salesDbContext.GameProducts.Where(game => game.Price < maxExclusive).OrderBy(p => p.Id);
-        }
-        else if(isMaxValueNull) //Min Value Only
-        {
-            games = _salesDbContext.GameProducts.Where(game => game.Price >= minInclusive).OrderBy(p => p.Id);
-        }
-        else //Both Bounds
-        {
-            games = _salesDbContext.GameProducts.Where(game => (game.Price < maxExclusive) && (game.Price >= minInclusive)).OrderBy(p => p.Id);
-        }
-
-        if(!games.Any())
-        {
-            return null;
-        }
-        
-        return games;
-    }
-
     public async Task<GameProduct?> GetGame(int gameProductId)
     {
         return await _salesDbContext.GameProducts
@@ -148,7 +105,7 @@ public class GamesService : IGamesService
         return existingCategory;
     }
 
-    public async Task<GameProduct> UpdateGame(int gameProductId, GameDto dto)
+    public async Task<GameProduct> UpdateGame(int gameProductId, ExistingGameDto dto)
     {
         var existingGame = await _salesDbContext.GameProducts
             .Include(p => p.Categories)
@@ -157,6 +114,7 @@ public class GamesService : IGamesService
 
         GameProduct newGame = ConvertDtoToGameProduct(dto);
         newGame.Id = existingGame.Id;
+        newGame.Price = existingGame.Price;
 
         _salesDbContext.GameProducts.Entry(existingGame).CurrentValues.SetValues(newGame);
         existingGame.Categories.Clear();
@@ -176,7 +134,7 @@ public class GamesService : IGamesService
         return gameCategory;
     }
 
-    private GameProduct ConvertDtoToGameProduct(GameDto dto)
+    private GameProduct ConvertDtoToGameProduct(NewGameDto dto)
     {
         GameProduct gameProduct = new()
         {
@@ -186,6 +144,35 @@ public class GamesService : IGamesService
             Publisher = dto.Publisher,
             ReleaseDate = dto.ReleaseDate,
             Price = dto.Price,
+            FileSize = dto.FileSize,
+            SystemRequirements = dto.SystemRequirements
+        };
+
+        if (dto.GameCategoryIds != null)
+        {
+            foreach (var id in dto.GameCategoryIds)
+            {
+                var selectedCategory = _salesDbContext.GameCategories.Find(id);
+                if (selectedCategory != null)
+                {
+                    _salesDbContext.Attach(selectedCategory);
+                    gameProduct.Categories.Add(selectedCategory);
+                }
+            }
+        }
+
+        return gameProduct;
+    }
+
+    private GameProduct ConvertDtoToGameProduct(ExistingGameDto dto)
+    {
+        GameProduct gameProduct = new()
+        {
+            Title = dto.Title,
+            Description = dto.Description,
+            Developer = dto.Developer,
+            Publisher = dto.Publisher,
+            ReleaseDate = dto.ReleaseDate,
             FileSize = dto.FileSize,
             SystemRequirements = dto.SystemRequirements
         };
