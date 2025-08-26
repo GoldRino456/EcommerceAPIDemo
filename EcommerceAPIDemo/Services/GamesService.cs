@@ -10,16 +10,19 @@ public interface IGamesService
     //READ Operations
     public IQueryable<GameProduct>? GetAllGames();
     public IQueryable<GameCategory>? GetAllCategories();
-    public Task<GameProduct?> GetGame(int gameProductId);
-    public Task<GameCategory?> GetCategory(int categoryId);
+    public Task<GameProduct?> GetGameAsync(int gameProductId);
+    public Task<GameCategory?> GetCategoryAsync(int categoryId);
 
     //CREATE Operations
-    public Task<GameProduct> CreateGame(NewGameDto dto);
-    public Task<GameCategory> CreateCategory(CategoryDto dto);
+    public Task<GameProduct> CreateGameAsync(NewGameDto dto);
+    public Task<GameCategory> CreateCategoryAsync(CategoryDto dto);
 
     //UPDATE Operations
-    public Task<GameProduct> UpdateGame(int gameProductId, ExistingGameDto dto);
-    public Task<GameCategory> UpdateCategory(int gameCategoryId, CategoryDto dto);
+    public Task<GameProduct> UpdateGameAsync(int gameProductId, ExistingGameDto dto);
+    public Task<GameCategory> UpdateCategoryAsync(int gameCategoryId, CategoryDto dto);
+
+    //Utilities
+    public GameProductResponseDto ConvertGameProductObjToResponseDto(GameProduct gameProduct);
 }
 
 public class GamesService : IGamesService
@@ -31,7 +34,7 @@ public class GamesService : IGamesService
         _salesDbContext = salesDbContext;
     }
 
-    public async Task<GameCategory> CreateCategory(CategoryDto dto)
+    public async Task<GameCategory> CreateCategoryAsync(CategoryDto dto)
     {
         GameCategory newCategory = ConvertDtoToGameCategory(dto);
 
@@ -41,9 +44,9 @@ public class GamesService : IGamesService
         return savedCategory.Entity;
     }
 
-    public async Task<GameProduct> CreateGame(NewGameDto dto)
+    public async Task<GameProduct> CreateGameAsync(NewGameDto dto)
     {
-        GameProduct newGame = await ConvertDtoToGameProduct(dto);
+        GameProduct newGame = await ConvertDtoToGameProductAsync(dto);
 
         var savedGame = _salesDbContext.GameProducts.Add(newGame);
         await _salesDbContext.SaveChangesAsync();
@@ -79,7 +82,7 @@ public class GamesService : IGamesService
         return games;
     }
 
-    public async Task<GameProduct?> GetGame(int gameProductId)
+    public async Task<GameProduct?> GetGameAsync(int gameProductId)
     {
         return await _salesDbContext.GameProducts
             .Include(p => p.Categories)
@@ -87,12 +90,12 @@ public class GamesService : IGamesService
             .FirstOrDefaultAsync(p => p.Id == gameProductId);
     }
 
-    public async Task<GameCategory?> GetCategory(int categoryId)
+    public async Task<GameCategory?> GetCategoryAsync(int categoryId)
     {
         return await _salesDbContext.GameCategories.FirstOrDefaultAsync(c => c.Id == categoryId);
     }
 
-    public async Task<GameCategory> UpdateCategory(int gameCategoryId, CategoryDto dto)
+    public async Task<GameCategory> UpdateCategoryAsync(int gameCategoryId, CategoryDto dto)
     {
         var existingCategory = await _salesDbContext.GameCategories
             .FirstOrDefaultAsync(c => c.Id == gameCategoryId);
@@ -107,14 +110,14 @@ public class GamesService : IGamesService
         return existingCategory;
     }
 
-    public async Task<GameProduct> UpdateGame(int gameProductId, ExistingGameDto dto)
+    public async Task<GameProduct> UpdateGameAsync(int gameProductId, ExistingGameDto dto)
     {
         var existingGame = await _salesDbContext.GameProducts
             .Include(p => p.Categories)
             .Include(p => p.Sales)
             .FirstOrDefaultAsync(p => p.Id == gameProductId);
 
-        GameProduct newGame = await ConvertDtoToGameProduct(dto);
+        GameProduct newGame = await ConvertDtoToGameProductAsync(dto);
         newGame.Id = existingGame.Id;
         newGame.Price = existingGame.Price;
 
@@ -124,6 +127,40 @@ public class GamesService : IGamesService
         await _salesDbContext.SaveChangesAsync();
 
         return existingGame;
+    }
+
+    public GameProductResponseDto ConvertGameProductObjToResponseDto(GameProduct gameProduct)
+    {
+        var response = new GameProductResponseDto()
+        {
+            Id = gameProduct.Id,
+            Title = gameProduct.Title,
+            Description = gameProduct.Description,
+            Developer = gameProduct.Developer,
+            Publisher = gameProduct.Publisher,
+            ReleaseDate = gameProduct.ReleaseDate,
+            Price = gameProduct.Price,
+            FileSize = gameProduct.FileSize,
+            SystemRequirements = gameProduct.SystemRequirements
+        };
+
+        if(gameProduct.Categories.Any())
+        {
+            foreach(var category in gameProduct.Categories)
+            {
+                response.CategoryIds.Add(category.Id);
+            }
+        }
+
+        if(gameProduct.Sales.Any())
+        {
+            foreach(var sales in gameProduct.Sales)
+            {
+                response.SalesIds.Add(sales.Id);
+            }
+        }
+
+        return response;
     }
 
     private GameCategory ConvertDtoToGameCategory(CategoryDto dto)
@@ -136,7 +173,7 @@ public class GamesService : IGamesService
         return gameCategory;
     }
 
-    private async Task<GameProduct> ConvertDtoToGameProduct(NewGameDto dto)
+    private async Task<GameProduct> ConvertDtoToGameProductAsync(NewGameDto dto)
     {
         GameProduct gameProduct = new()
         {
@@ -155,8 +192,7 @@ public class GamesService : IGamesService
             foreach (var id in dto.GameCategoryIds)
             {
                 var selectedCategory = await _salesDbContext.GameCategories
-                    .Include(c => c.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(c => c.Id == id);
 
                 if (selectedCategory != null)
                 {
@@ -169,7 +205,7 @@ public class GamesService : IGamesService
         return gameProduct;
     }
 
-    private async Task<GameProduct> ConvertDtoToGameProduct(ExistingGameDto dto)
+    private async Task<GameProduct> ConvertDtoToGameProductAsync(ExistingGameDto dto)
     {
         GameProduct gameProduct = new()
         {
@@ -187,8 +223,7 @@ public class GamesService : IGamesService
             foreach (var id in dto.GameCategoryIds)
             {
                 var selectedCategory = await _salesDbContext.GameCategories
-                    .Include(c => c.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(c => c.Id == id);
 
                 if (selectedCategory != null)
                 {

@@ -17,6 +17,9 @@ public interface ISalesService
     //UPDATE Operations
     public Task<Sale> RefundExistingSale(int saleId);
     public Task<Sale> RefundPartialExistingSale(int saleId, double refundAmount);
+
+    //Utility
+    public SaleResponseDto ConvertSaleObjToResponseDto(Sale sale);
 }
 
 public class SalesService : ISalesService
@@ -99,6 +102,34 @@ public class SalesService : ISalesService
         return updatedSale.Entity;
     }
 
+    public SaleResponseDto ConvertSaleObjToResponseDto(Sale sale)
+    {
+        var responseDto = new SaleResponseDto()
+        {
+            Id = sale.Id,
+            TransactionDate = sale.TransactionDate,
+            TransactionLastUpdatedDate = sale.TransactionLastUpdatedDate,
+            IsRefund = sale.IsRefund,
+            IsPartialRefund = sale.IsPartialRefund,
+            CreditCardType = sale.CreditCardType,
+            LastFourDigitsOfPaymentCard = sale.LastFourDigitsOfPaymentCard,
+            SubTotal = sale.SubTotal,
+            SalesTax = sale.SalesTax,
+            Total = sale.Total,
+            ActualTransactionValue = sale.ActualTransactionValue
+        };
+
+        if(sale.GamesPurchased.Any())
+        {
+            foreach(var game in sale.GamesPurchased)
+            {
+                responseDto.GamesPurchasedIds.Add(game.Id);
+            }
+        }
+
+        return responseDto;
+    }
+
     private void UpdateSaleTransactionTimestamps(Sale sale)
     {
         if(sale.TransactionDate == default)
@@ -116,7 +147,7 @@ public class SalesService : ISalesService
     {
         Sale newSale = new()
         {
-            creditCardType = dto.creditCardType,
+            CreditCardType = dto.creditCardType,
             LastFourDigitsOfPaymentCard = dto.LastFourDigitsOfPaymentCard,
             SubTotal = dto.SubTotal,
             SalesTax = dto.SalesTax,
@@ -128,11 +159,11 @@ public class SalesService : ISalesService
             foreach (var id in dto.PurchasedGameIds)
             {
                 var selectedGame = await _salesDbContext.GameProducts
-                    .Include(p => p.Id == id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(p => p.Id == id);
 
                 if (selectedGame != null)
                 {
+                    _salesDbContext.Attach(selectedGame);
                     newSale.GamesPurchased.Add(selectedGame);
                 }
             }

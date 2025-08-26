@@ -17,7 +17,7 @@ public class GamesController :ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<PagedResponse<GameProduct>>> GetAllGamesAsync([FromQuery] PaginationParams pagination, [FromQuery] GameProductFilterParams filters)
+    public async Task<ActionResult<PagedResponse<GameProductResponseDto>>> GetAllGamesAsync([FromQuery] PaginationParams pagination, [FromQuery] GameProductFilterParams filters)
     {
         var query = _gamesService.GetAllGames();
 
@@ -45,7 +45,9 @@ public class GamesController :ControllerBase
             .Take(pagination.PageSize)
             .ToListAsync();
 
-        var pagedResponse = new PagedResponse<GameProduct>(items, pagination.PageNumber, pagination.PageSize, totalRecords);
+        var responseItems = items.Select(x => _gamesService.ConvertGameProductObjToResponseDto(x)).ToList();
+
+        var pagedResponse = new PagedResponse<GameProductResponseDto>(responseItems, pagination.PageNumber, pagination.PageSize, totalRecords);
 
         return Ok(pagedResponse);
     }
@@ -71,22 +73,22 @@ public class GamesController :ControllerBase
     }
 
     [HttpGet("{gameId}")]
-    public async Task<ActionResult<GameProduct>> GetGameAsync(int gameId)
+    public async Task<ActionResult<GameProductResponseDto>> GetGameAsync(int gameId)
     {
-        var selectedGame = await _gamesService.GetGame(gameId);
+        var selectedGame = await _gamesService.GetGameAsync(gameId);
 
         if(selectedGame == null)
         {
             return NotFound($"Game with id {gameId} was not found.");
         }
 
-        return Ok(selectedGame);
+        return Ok(_gamesService.ConvertGameProductObjToResponseDto(selectedGame));
     }
 
     [HttpGet("categories/{categoryId}")]
     public async Task<ActionResult<GameCategory>> GetCategoryAsync(int categoryId)
     {
-        var selectedCategory = await _gamesService.GetCategory(categoryId);
+        var selectedCategory = await _gamesService.GetCategoryAsync(categoryId);
 
         if (selectedCategory == null)
         {
@@ -97,40 +99,42 @@ public class GamesController :ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<GameProduct>> CreateGameAsync(NewGameDto dto)
+    public async Task<ActionResult<GameProductResponseDto>> CreateGameAsync(NewGameDto dto)
     {
-        return Ok(await _gamesService.CreateGame(dto));
+        var newGame = await _gamesService.CreateGameAsync(dto);
+        return Ok(_gamesService.ConvertGameProductObjToResponseDto(newGame));
     }
 
     [HttpPost("categories")]
     public async Task<ActionResult<GameCategory>> CreateCategoryAsync(CategoryDto dto)
     {
-        return Ok(await _gamesService.CreateCategory(dto));
+        return Ok(await _gamesService.CreateCategoryAsync(dto));
     }
 
     [HttpPut("{gameId}")]
-    public async Task<ActionResult<GameProduct>> UpdateGameAsync(int gameId, ExistingGameDto dto)
+    public async Task<ActionResult<GameProductResponseDto>> UpdateGameAsync(int gameId, ExistingGameDto dto)
     {
-        var selectedGame = await _gamesService.GetGame(gameId);
+        var selectedGame = await _gamesService.GetGameAsync(gameId);
 
         if(selectedGame == null)
         {
             return NotFound($"Game with id {gameId} was not found.");
         }
 
-        return Ok(await _gamesService.UpdateGame(selectedGame.Id, dto));
+        var updatedGame = await _gamesService.UpdateGameAsync(selectedGame.Id, dto);
+        return Ok(_gamesService.ConvertGameProductObjToResponseDto(updatedGame));
     }
 
     [HttpPut("categories/{categoryId}")]
     public async Task<ActionResult<GameCategory>> UpdateCategoryAsync(int categoryId, CategoryDto dto)
     {
-        var selectedCategory = await _gamesService.GetCategory(categoryId);
+        var selectedCategory = await _gamesService.GetCategoryAsync(categoryId);
 
         if (selectedCategory == null)
         {
             return NotFound($"Category with id {categoryId} was not found.");
         }
 
-        return Ok(await _gamesService.UpdateCategory(selectedCategory.Id, dto));
+        return Ok(await _gamesService.UpdateCategoryAsync(selectedCategory.Id, dto));
     }
 }

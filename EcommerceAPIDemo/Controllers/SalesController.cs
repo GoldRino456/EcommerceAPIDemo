@@ -17,7 +17,7 @@ public class SalesController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<PagedResponse<Sale>>> GetAllSalesAsync([FromQuery] PaginationParams pagination, [FromQuery] SalesFilterParams filters)
+    public async Task<ActionResult<PagedResponse<SaleResponseDto>>> GetAllSalesAsync([FromQuery] PaginationParams pagination, [FromQuery] SalesFilterParams filters)
     {
         var query = _salesService.GetAllSales();
 
@@ -48,13 +48,15 @@ public class SalesController : ControllerBase
             .Take(pagination.PageSize)
             .ToListAsync();
 
-        var pagedResponse = new PagedResponse<Sale>(items, pagination.PageNumber, pagination.PageSize, totalRecords);
+        var responseItems = items.Select(x => _salesService.ConvertSaleObjToResponseDto(x)).ToList();
+
+        var pagedResponse = new PagedResponse<SaleResponseDto>(responseItems, pagination.PageNumber, pagination.PageSize, totalRecords);
 
         return Ok(pagedResponse);
     }
 
     [HttpGet("{saleId}")]
-    public async Task<ActionResult<Sale>> GetSaleAsync(int saleId)
+    public async Task<ActionResult<SaleResponseDto>> GetSaleAsync(int saleId)
     {
         var selectedSale = await _salesService.GetSale(saleId);
 
@@ -63,17 +65,19 @@ public class SalesController : ControllerBase
             return NotFound($"Sale with id {saleId} was not found.");
         }
 
-        return Ok(selectedSale);
+        var response = _salesService.ConvertSaleObjToResponseDto(selectedSale);
+        return Ok(response);
     }
 
     [HttpPost]
-    public async Task<ActionResult<Sale>> CreateGameAsync(SaleDto dto)
+    public async Task<ActionResult<SaleResponseDto>> CreateSaleAsync(SaleDto dto)
     {
-        return Ok(await _salesService.CreateSale(dto));
+        var newSale = await _salesService.CreateSale(dto);
+        return Ok(_salesService.ConvertSaleObjToResponseDto(newSale));
     }
 
     [HttpPut("{saleId}")]
-    public async Task<ActionResult<GameProduct>> ProcessSaleRefundAsync(int saleId, [FromQuery]double refundAmount)
+    public async Task<ActionResult<SaleResponseDto>> ProcessSaleRefundAsync(int saleId, [FromQuery]double refundAmount)
     {
         var selectedSale = await _salesService.GetSale(saleId);
 
@@ -95,13 +99,16 @@ public class SalesController : ControllerBase
             return BadRequest($"Sale with id {saleId} has transaction value that is less than the refund amount of {refundAmount}. Cannot refund more than what was sold.");
         }
 
+        //Full or Partial Refund?
         if(refundAmount == selectedSale.ActualTransactionValue)
         {
-            return Ok(await _salesService.RefundExistingSale(saleId));
+            await _salesService.RefundExistingSale(saleId);
         }
         else
         {
-            return Ok(await _salesService.RefundPartialExistingSale(saleId, refundAmount));
+            await _salesService.RefundPartialExistingSale(saleId, refundAmount);
         }
+
+        return Ok(_salesService.ConvertSaleObjToResponseDto(selectedSale));
     }
 }
